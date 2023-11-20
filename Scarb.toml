@@ -1,0 +1,9 @@
+[package]
+name = "zklink_starknet_utils"
+version = "0.1.0"
+description = "zklink starknet utils, cairo1.0 compatible"
+homepage = "https://zk.link/"
+
+[dependencies]
+starknet = ">=2.3.1"
+alexandria_data_structures = { git = "https://github.com/keep-starknet-strange/alexandria.git", tag = "cairo-v2.3.0-rc0" }
