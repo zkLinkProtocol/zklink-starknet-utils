@@ -6,7 +6,7 @@ use traits::DivRem;
 use option::OptionTrait;
 use starknet::{ContractAddress, Felt252TryIntoContractAddress};
 use zklink_starknet_utils::math::u128_fast_shift;
-use zklink_starknet_utils::utils::{u128_join, u128_split, read_sub_u128};
+use zklink_starknet_utils::utils::{u128_join, u128_split, read_sub_u128, array_slice};
 use zklink_starknet_utils::keccak::keccak_u128s_be;
 
 // You can impl this trait for your own type.
@@ -101,6 +101,8 @@ trait BytesTrait {
     fn concat(ref self: Bytes, other: @Bytes);
     /// keccak hash
     fn keccak(self: @Bytes) -> u256;
+    /// keccak for op check
+    fn keccak_for_check(self: @Bytes, checkSize: usize) -> u256;
     /// append pending data
     fn append_pending_data(ref self: Bytes, value: u128, size: usize);
     /// read value from data
@@ -543,5 +545,22 @@ impl BytesImpl of BytesTrait {
             hash_data.append(*self.pending_data);
             return keccak_u128s_be(hash_data.span(), self.size());
         }
+    }
+
+    /// keccak for op check
+    fn keccak_for_check(self: @Bytes, checkSize: usize) -> u256 {
+        assert(checkSize <= self.size(), 'checkSize too large');
+        let (aligned_data_len, last_hash_data_item_size) = DivRem::div_rem(
+            checkSize, BYTES_PER_ELEMENT.try_into().expect('Division by 0')
+        );
+        let mut hash_data = array_slice(self.data, 0, aligned_data_len);
+
+        if last_hash_data_item_size != 0 {
+            let (_, last_hash_data_item) = self
+                .read_u128_packed(checkSize - last_hash_data_item_size, last_hash_data_item_size);
+            hash_data.append(last_hash_data_item);
+        }
+
+        keccak_u128s_be(hash_data.span(), checkSize)
     }
 }
